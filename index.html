@@ -49,7 +49,9 @@
 </a-scene>
 
 <div id="controls">
-    <button id="toggleRotation">回転</button>
+    <button id="rotateX">X回転</button>
+    <button id="rotateY">Y回転</button>
+    <button id="rotateZ">Z回転</button>
     <button id="scaleUp">拡大</button>
     <button id="scaleDown">縮小</button>
 
@@ -67,20 +69,28 @@
     const model = document.getElementById('model');
 
     /* ===== 回転 ===== */
-    let rotating = false;
+    let rotatingAxis = null; // 'x', 'y', 'z'
     const rotationSpeed = 1;
 
     function rotateModel() {
-        if (rotating) {
+        if (rotatingAxis) {
             const rot = model.getAttribute('rotation');
-            rot.z += rotationSpeed;
+            rot[rotatingAxis] += rotationSpeed;
             model.setAttribute('rotation', rot);
         }
         requestAnimationFrame(rotateModel);
     }
 
-    document.getElementById('toggleRotation').addEventListener('click', () => {
-        rotating = !rotating;
+    document.getElementById('rotateX').addEventListener('click', () => {
+        rotatingAxis = rotatingAxis === 'x' ? null : 'x';
+    });
+
+    document.getElementById('rotateY').addEventListener('click', () => {
+        rotatingAxis = rotatingAxis === 'y' ? null : 'y';
+    });
+
+    document.getElementById('rotateZ').addEventListener('click', () => {
+        rotatingAxis = rotatingAxis === 'z' ? null : 'z';
     });
 
     rotateModel();
