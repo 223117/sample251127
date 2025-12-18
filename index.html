@@ -58,6 +58,7 @@
     <button id="rotateX">X回転</button>
     <button id="rotateY">Y回転</button>
     <button id="rotateZ">Z回転</button>
+    <button id="rotateStop">停止</button>
     <button id="scaleUp">拡大</button>
     <button id="scaleDown">縮小</button>
 
@@ -107,6 +108,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('rotateZ').addEventListener('click', () => {
         rotatingAxis = 'z';
+    });
+
+    document.getElementById('rotateStop').addEventListener('click', () => {
+        rotatingAxis = null; // 回転停止
     });
 
     rotateModel();
