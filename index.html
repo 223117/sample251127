@@ -72,35 +72,41 @@
 </div>
 
 <script>
+window.addEventListener('DOMContentLoaded', () => {
     const model = document.getElementById('model');
 
     /* ===== 回転 ===== */
-    let rotatingAxis = null; // 'x','y','z' どれか1つだけ回転 // 'x', 'y', 'z'
+    let rotatingAxis = null; // 'x','y','z'
     const rotationSpeed = 1;
 
     function rotateModel() {
-        if (rotatingAxis) {
-            const rot = model.getAttribute('rotation');
-            rot[rotatingAxis] += rotationSpeed;
-            model.setAttribute('rotation', rot);
-        }
+        if (!model) return;
+        const rot = model.getAttribute('rotation');
+
+        if (rotatingAxis === 'x') rot.x += rotationSpeed;
+        if (rotatingAxis === 'y') rot.y += rotationSpeed;
+        if (rotatingAxis === 'z') rot.z += rotationSpeed;
+
+        model.setAttribute('rotation', rot);
 
         // 回転角表示更新
-        const r = model.getAttribute('rotation');
-        document.getElementById('rotX').textContent = r.x.toFixed(1);
-        document.getElementById('rotY').textContent = r.y.toFixed(1);
-        document.getElementById('rotZ').textContent = r.z.toFixed(1);
+        document.getElementById('rotX').textContent = rot.x.toFixed(1);
+        document.getElementById('rotY').textContent = rot.y.toFixed(1);
+        document.getElementById('rotZ').textContent = rot.z.toFixed(1);
 
         requestAnimationFrame(rotateModel);
-    }
     }
 
     document.getElementById('rotateX').addEventListener('click', () => {
         rotatingAxis = 'x';
     });
 
-    document.getElementById('rotateY').ad('click', () => {
-        rotatingAxis = rotatingAxis === 'z' ? null : 'z';
+    document.getElementById('rotateY').addEventListener('click', () => {
+        rotatingAxis = 'y';
+    });
+
+    document.getElementById('rotateZ').addEventListener('click', () => {
+        rotatingAxis = 'z';
     });
 
     rotateModel();
@@ -160,30 +166,7 @@
         pos.z -= moveStep;
         model.setAttribute('position', pos);
     });
-
-    /* ===== 撮影 ===== */
-    document.getElementById('capture').addEventListener('click', () => {
-        const sceneEl = document.querySelector('a-scene');
-        const renderer = sceneEl.renderer;
-        const video = document.querySelector('video');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        canvas.width = renderer.domElement.width;
-        canvas.height = renderer.domElement.height;
-
-        if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        }
-
-        renderer.render(sceneEl.object3D, sceneEl.camera);
-        ctx.drawImage(renderer.domElement, 0, 0);
-
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = 'screenshot.png';
-        link.click();
-    });
+});
 </script>
 
 </body>
