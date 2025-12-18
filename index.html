@@ -48,6 +48,12 @@
     <a-entity camera></a-entity>
 </a-scene>
 
+<div id="rotationDisplay" style="position:absolute;top:10px;background:rgba(0,0,0,0.5);color:white;padding:6px 10px;border-radius:6px;font-size:14px;">
+    Rot X: <span id="rotX">0</span>° |
+    Rot Y: <span id="rotY">0</span>° |
+    Rot Z: <span id="rotZ">0</span>°
+</div>
+
 <div id="controls">
     <button id="rotateX">X回転</button>
     <button id="rotateY">Y回転</button>
@@ -78,7 +84,14 @@
             rot[rotatingAxis] += rotationSpeed;
             model.setAttribute('rotation', rot);
         }
-        requestAnimationFrame(rotateModel);
+
+        // 回転角表示更新
+        const r = model.getAttribute('rotation');
+        document.getElementById('rotX').textContent = r.x.toFixed(1);
+        document.getElementById('rotY').textContent = r.y.toFixed(1);
+        document.getElementById('rotZ').textContent = r.z.toFixed(1);
+
+        requestAnimationFrame(rotateMode
     }
 
     document.getElementById('rotateX').addEventListener('click', () => {
