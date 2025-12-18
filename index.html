@@ -75,7 +75,7 @@
     const model = document.getElementById('model');
 
     /* ===== 回転 ===== */
-    let rotatingAxis = null; // 'x', 'y', 'z'
+    let rotatingAxis = null; // 'x','y','z' どれか1つだけ回転 // 'x', 'y', 'z'
     const rotationSpeed = 1;
 
     function rotateModel() {
@@ -91,18 +91,15 @@
         document.getElementById('rotY').textContent = r.y.toFixed(1);
         document.getElementById('rotZ').textContent = r.z.toFixed(1);
 
-        requestAnimationFrame(rotateMode
+        requestAnimationFrame(rotateModel);
+    }
     }
 
     document.getElementById('rotateX').addEventListener('click', () => {
-        rotatingAxis = rotatingAxis === 'x' ? null : 'x';
+        rotatingAxis = 'x';
     });
 
-    document.getElementById('rotateY').addEventListener('click', () => {
-        rotatingAxis = rotatingAxis === 'y' ? null : 'y';
-    });
-
-    document.getElementById('rotateZ').addEventListener('click', () => {
+    document.getElementById('rotateY').ad('click', () => {
         rotatingAxis = rotatingAxis === 'z' ? null : 'z';
     });
 
