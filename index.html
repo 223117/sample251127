@@ -1,184 +1,200 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-    <meta charset="utf-8">
-    <title>静清ARサンプル（マーカーレス版）</title>
+<meta charset="utf-8">
+<title>Tinkercad AR表示</title>
 
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<!-- A-Frame -->
+<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
 
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
+<!-- AR.js -->
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-        #controls {
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
+<style>
+    body{
+        margin:0;
+        overflow:hidden;
+        font-family:sans-serif;
+    }
 
-        #controls button {
-            margin: 4px;
-            padding: 6px 10px;
-        }
-    </style>
+    #info{
+        position:absolute;
+        top:10px;
+        left:10px;
+        z-index:10;
+        background:rgba(0,0,0,0.6);
+        color:white;
+        padding:10px;
+        border-radius:10px;
+        font-size:14px;
+    }
+
+    #buttons{
+        position:absolute;
+        bottom:10px;
+        width:100%;
+        display:flex;
+        justify-content:center;
+        flex-wrap:wrap;
+        z-index:10;
+    }
+
+    #buttons button{
+        margin:4px;
+        padding:8px 12px;
+        font-size:14px;
+        border:none;
+        border-radius:8px;
+    }
+</style>
 </head>
 
 <body>
 
+<div id="info">
+    Tinkercad ARモデル表示中
+</div>
+
+<!-- ARシーン -->
 <a-scene
     embedded
-    vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true;"
-    arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled:false"
+    renderer="logarithmicDepthBuffer:true;"
+    arjs="sourceType:webcam; debugUIEnabled:false;"
 >
 
+    <!-- モデル読み込み -->
     <a-assets>
-        <a-asset-item id="obj" src="tinker.obj"></a-asset-item>
-        <a-asset-item id="mtl" src="obj.mtl"></a-asset-item>
+        <a-asset-item id="objModel" src="tinker.obj"></a-asset-item>
+        <a-asset-item id="mtlModel" src="obj.mtl"></a-asset-item>
     </a-assets>
 
-    <!-- マーカーなしで直接表示 -->
+    <!-- 3Dモデル -->
     <a-obj-model
         id="model"
-        src="#obj"
-        mtl="#mtl"
+        src="#objModel"
+        mtl="#mtlModel"
         position="0 0 -2"
-        scale="0.1 0.1 0.1"
-        rotation="0 0 0">
+        rotation="0 0 0"
+        scale="0.05 0.05 0.05">
     </a-obj-model>
 
+    <!-- カメラ -->
     <a-entity camera></a-entity>
 
 </a-scene>
 
-<div id="rotationDisplay"
-     style="position:absolute;
-            top:10px;
-            left:10px;
-            background:rgba(0,0,0,0.5);
-            color:white;
-            padding:6px 10px;
-            border-radius:6px;
-            font-size:14px;">
+<!-- 操作ボタン -->
+<div id="buttons">
 
-    Rot X: <span id="rotX">0</span>° |
-    Rot Y: <span id="rotY">0</span>° |
-    Rot Z: <span id="rotZ">0</span>°
-</div>
+    <button onclick="rotateX()">X回転</button>
+    <button onclick="rotateY()">Y回転</button>
+    <button onclick="rotateZ()">Z回転</button>
 
-<div id="controls">
+    <button onclick="scaleUp()">拡大</button>
+    <button onclick="scaleDown()">縮小</button>
 
-    <button id="rotateX">X回転</button>
-    <button id="rotateY">Y回転</button>
-    <button id="rotateZ">Z回転</button>
-    <button id="rotateStop">停止</button>
+    <button onclick="moveLeft()">←</button>
+    <button onclick="moveRight()">→</button>
 
-    <button id="scaleUp">拡大</button>
-    <button id="scaleDown">縮小</button>
-
-    <button id="moveXPlus">X＋</button>
-    <button id="moveXMinus">X－</button>
-
-    <button id="moveYPlus">Y＋</button>
-    <button id="moveYMinus">Y－</button>
-
-    <button id="moveZPlus">Z＋</button>
-    <button id="moveZMinus">Z－</button>
+    <button onclick="moveUp()">↑</button>
+    <button onclick="moveDown()">↓</button>
 
 </div>
 
 <script>
 
-window.addEventListener('DOMContentLoaded', () => {
+const model = document.getElementById("model");
 
-    const model = document.getElementById('model');
+/* ===== 回転 ===== */
 
-    /* ===== 回転 ===== */
+function rotateX(){
 
-    let rotatingAxis = null;
-    const rotationSpeed = 1;
+    let rot = model.getAttribute("rotation");
+    rot.x += 15;
 
-    function rotateModel() {
+    model.setAttribute("rotation", rot);
+}
 
-        const rot = model.getAttribute('rotation');
+function rotateY(){
 
-        if (rotatingAxis === 'x') rot.x += rotationSpeed;
-        if (rotatingAxis === 'y') rot.y += rotationSpeed;
-        if (rotatingAxis === 'z') rot.z += rotationSpeed;
+    let rot = model.getAttribute("rotation");
+    rot.y += 15;
 
-        model.setAttribute('rotation', rot);
+    model.setAttribute("rotation", rot);
+}
 
-        document.getElementById('rotX').textContent = rot.x.toFixed(1);
-        document.getElementById('rotY').textContent = rot.y.toFixed(1);
-        document.getElementById('rotZ').textContent = rot.z.toFixed(1);
+function rotateZ(){
 
-        requestAnimationFrame(rotateModel);
-    }
+    let rot = model.getAttribute("rotation");
+    rot.z += 15;
 
-    rotateModel();
+    model.setAttribute("rotation", rot);
+}
 
-    document.getElementById('rotateX').onclick = () => rotatingAxis = 'x';
-    document.getElementById('rotateY').onclick = () => rotatingAxis = 'y';
-    document.getElementById('rotateZ').onclick = () => rotatingAxis = 'z';
-    document.getElementById('rotateStop').onclick = () => rotatingAxis = null;
+/* ===== 拡大縮小 ===== */
 
-    /* ===== 拡大縮小 ===== */
+function scaleUp(){
 
-    document.getElementById('scaleUp').onclick = () => {
+    let scale = model.getAttribute("scale");
 
-        const scale = model.getAttribute('scale');
+    scale.x += 0.01;
+    scale.y += 0.01;
+    scale.z += 0.01;
 
-        scale.x += 0.01;
-        scale.y += 0.01;
-        scale.z += 0.01;
+    model.setAttribute("scale", scale);
+}
 
-        model.setAttribute('scale', scale);
-    };
+function scaleDown(){
 
-    document.getElementById('scaleDown').onclick = () => {
+    let scale = model.getAttribute("scale");
 
-        const scale = model.getAttribute('scale');
+    scale.x = Math.max(0.01, scale.x - 0.01);
+    scale.y = Math.max(0.01, scale.y - 0.01);
+    scale.z = Math.max(0.01, scale.z - 0.01);
 
-        scale.x = Math.max(0.01, scale.x - 0.01);
-        scale.y = Math.max(0.01, scale.y - 0.01);
-        scale.z = Math.max(0.01, scale.z - 0.01);
+    model.setAttribute("scale", scale);
+}
 
-        model.setAttribute('scale', scale);
-    };
+/* ===== 移動 ===== */
 
-    /* ===== 移動 ===== */
+function moveLeft(){
 
-    const moveStep = 0.05;
+    let pos = model.getAttribute("position");
 
-    function move(axis, value) {
+    pos.x -= 0.1;
 
-        const pos = model.getAttribute('position');
+    model.setAttribute("position", pos);
+}
 
-        pos[axis] += value;
+function moveRight(){
 
-        model.setAttribute('position', pos);
-    }
+    let pos = model.getAttribute("position");
 
-    document.getElementById('moveXPlus').onclick = () => move('x', moveStep);
-    document.getElementById('moveXMinus').onclick = () => move('x', -moveStep);
+    pos.x += 0.1;
 
-    document.getElementById('moveYPlus').onclick = () => move('y', moveStep);
-    document.getElementById('moveYMinus').onclick = () => move('y', -moveStep);
+    model.setAttribute("position", pos);
+}
 
-    document.getElementById('moveZPlus').onclick = () => move('z', moveStep);
-    document.getElementById('moveZMinus').onclick = () => move('z', -moveStep);
+function moveUp(){
 
-});
+    let pos = model.getAttribute("position");
+
+    pos.y += 0.1;
+
+    model.setAttribute("position", pos);
+}
+
+function moveDown(){
+
+    let pos = model.getAttribute("position");
+
+    pos.y -= 0.1;
+
+    model.setAttribute("position", pos);
+}
 
 </script>
 
 </body>
 </html>
-
-
