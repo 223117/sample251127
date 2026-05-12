@@ -1,200 +1,123 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<title>Tinkercad AR表示</title>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>静清ARサンプル（ワイヤーフレーム）</title>
+        <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            #controls {
+                position: absolute;
+                bottom: 10px;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+            }
+            #controls button {
+                margin: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <a-scene embedded arjs="debugUIEnabled:false;">
+            <a-assets>
+                <a-asset-item id="obj" src="tinker.obj"></a-asset-item>
+                <a-asset-item id="mtl" src="obj.mtl"></a-asset-item>
+            </a-assets>
+    <a-marker type="pattern" url="sei.patt">
+                <a-obj-model id="model" src="#obj" mtl="#mtl" scale="0.1 0.1 0.1" rotation="90 180 0" position="0 0 0"></a-obj-model>
+            </a-marker>
+            <a-entity camera></a-entity>
+        </a-scene>
 
-<!-- A-Frame -->
-<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+        <div id="controls">
+            <button id="toggleRotation">回転</button>
+            <button id="scaleUp">拡大</button>
+            <button id="scaleDown">縮小</button>
+            <button id="capture">撮影</button> <!-- 撮影ボタン追加 -->
+        </div>
 
-<!-- AR.js -->
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+        <script>
+            // モデルの回転を制御するフラグと速度
+            let rotating = false;
+            const rotationSpeed = 1; // 回転の速度
 
-<style>
-    body{
-        margin:0;
-        overflow:hidden;
-        font-family:sans-serif;
-    }
+            // モデルの参照
+            const model = document.getElementById('model');
 
-    #info{
-        position:absolute;
-        top:10px;
-        left:10px;
-        z-index:10;
-        background:rgba(0,0,0,0.6);
-        color:white;
-        padding:10px;
-        border-radius:10px;
-        font-size:14px;
-    }
+            // 回転を制御する関数
+            function rotateModel() {
+                if (rotating) {
+                    const rotation = model.getAttribute('rotation');
+                    rotation.z += rotationSpeed; // Z軸を中心に回転
+                    model.setAttribute('rotation', rotation);
+                }
+                requestAnimationFrame(rotateModel); // 次のフレームで再び呼び出す
+            }
 
-    #buttons{
-        position:absolute;
-        bottom:10px;
-        width:100%;
-        display:flex;
-        justify-content:center;
-        flex-wrap:wrap;
-        z-index:10;
-    }
+            // 回転開始/停止を切り替えるボタンのイベントリスナー
+            document.getElementById('toggleRotation').addEventListener('click', () => {
+                rotating = !rotating; // 回転フラグを反転
+            });
 
-    #buttons button{
-        margin:4px;
-        padding:8px 12px;
-        font-size:14px;
-        border:none;
-        border-radius:8px;
-    }
-</style>
-</head>
+            // 拡大ボタンのイベントリスナー
+            document.getElementById('scaleUp').addEventListener('click', () => {
+                const scale = model.getAttribute('scale');
+                scale.x += 0.01;
+                scale.y += 0.01;
+                scale.z += 0.01;
+                model.setAttribute('scale', scale); // モデルを拡大
+            });
 
-<body>
+            // 縮小ボタンのイベントリスナー
+            document.getElementById('scaleDown').addEventListener('click', () => {
+                const scale = model.getAttribute('scale');
+                scale.x = Math.max(0.01, scale.x - 0.01);
+                scale.y = Math.max(0.01, scale.y - 0.01);
+                scale.z = Math.max(0.01, scale.z - 0.01);
+                model.setAttribute('scale', scale); // モデルを縮小
+            });
 
-<div id="info">
-    Tinkercad ARモデル表示中
-</div>
+            // 撮影ボタンのイベントリスナー
+            document.getElementById('capture').addEventListener('click', () => {
+                const sceneEl = document.querySelector('a-scene');
+                const renderer = sceneEl.renderer;
+                const video = document.querySelector('video'); // カメラ映像用ビデオ要素
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                const width = renderer.domElement.width;
+                const height = renderer.domElement.height;
 
-<!-- ARシーン -->
-<a-scene
-    embedded
-    vr-mode-ui="enabled:false"
-    renderer="logarithmicDepthBuffer:true;"
-    arjs="sourceType:webcam; debugUIEnabled:false;"
->
+                // Canvasサイズをレンダラーと同じに設定
+                canvas.width = width;
+                canvas.height = height;
 
-    <!-- モデル読み込み -->
-    <a-assets>
-        <a-asset-item id="objModel" src="tinker.obj"></a-asset-item>
-        <a-asset-item id="mtlModel" src="obj.mtl"></a-asset-item>
-    </a-assets>
+                // 1. ビデオ映像（カメラ映像）を描画
+                if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+                    context.drawImage(video, 0, 0, width, height);
+                }
 
-    <!-- 3Dモデル -->
-    <a-obj-model
-        id="model"
-        src="#objModel"
-        mtl="#mtlModel"
-        position="0 0 -2"
-        rotation="0 0 0"
-        scale="0.05 0.05 0.05">
-    </a-obj-model>
+                // 2. 3Dシーンの描画を追加
+                renderer.render(sceneEl.object3D, sceneEl.camera);
+                context.drawImage(renderer.domElement, 0, 0);
 
-    <!-- カメラ -->
-    <a-entity camera></a-entity>
+                // 3. 画像として保存
+                const dataURL = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = 'screenshot.png';
+                link.click();
+            });
 
-</a-scene>
-
-<!-- 操作ボタン -->
-<div id="buttons">
-
-    <button onclick="rotateX()">X回転</button>
-    <button onclick="rotateY()">Y回転</button>
-    <button onclick="rotateZ()">Z回転</button>
-
-    <button onclick="scaleUp()">拡大</button>
-    <button onclick="scaleDown()">縮小</button>
-
-    <button onclick="moveLeft()">←</button>
-    <button onclick="moveRight()">→</button>
-
-    <button onclick="moveUp()">↑</button>
-    <button onclick="moveDown()">↓</button>
-
-</div>
-
-<script>
-
-const model = document.getElementById("model");
-
-/* ===== 回転 ===== */
-
-function rotateX(){
-
-    let rot = model.getAttribute("rotation");
-    rot.x += 15;
-
-    model.setAttribute("rotation", rot);
-}
-
-function rotateY(){
-
-    let rot = model.getAttribute("rotation");
-    rot.y += 15;
-
-    model.setAttribute("rotation", rot);
-}
-
-function rotateZ(){
-
-    let rot = model.getAttribute("rotation");
-    rot.z += 15;
-
-    model.setAttribute("rotation", rot);
-}
-
-/* ===== 拡大縮小 ===== */
-
-function scaleUp(){
-
-    let scale = model.getAttribute("scale");
-
-    scale.x += 0.01;
-    scale.y += 0.01;
-    scale.z += 0.01;
-
-    model.setAttribute("scale", scale);
-}
-
-function scaleDown(){
-
-    let scale = model.getAttribute("scale");
-
-    scale.x = Math.max(0.01, scale.x - 0.01);
-    scale.y = Math.max(0.01, scale.y - 0.01);
-    scale.z = Math.max(0.01, scale.z - 0.01);
-
-    model.setAttribute("scale", scale);
-}
-
-/* ===== 移動 ===== */
-
-function moveLeft(){
-
-    let pos = model.getAttribute("position");
-
-    pos.x -= 0.1;
-
-    model.setAttribute("position", pos);
-}
-
-function moveRight(){
-
-    let pos = model.getAttribute("position");
-
-    pos.x += 0.1;
-
-    model.setAttribute("position", pos);
-}
-
-function moveUp(){
-
-    let pos = model.getAttribute("position");
-
-    pos.y += 0.1;
-
-    model.setAttribute("position", pos);
-}
-
-function moveDown(){
-
-    let pos = model.getAttribute("position");
-
-    pos.y -= 0.1;
-
-    model.setAttribute("position", pos);
-}
-
-</script>
-
-</body>
+            // 初期状態で回転を制御する関数を呼び出す
+            rotateModel();
+        </script>
+    </body>
 </html>
