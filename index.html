@@ -2,77 +2,359 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>カメラ起動テスト</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>静清ARサンプル</title>
 
-  <style>
-    body {
-      margin: 0;
-      background: #222;
-      color: white;
-      font-family: sans-serif;
+<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: sans-serif;
     }
 
-    #status {
-      position: fixed;
-      z-index: 10;
-      top: 10px;
-      left: 10px;
-      padding: 12px;
-      background: black;
-      color: white;
+    /* AR画面 */
+    a-scene {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 1 !important;
     }
 
+    /* カメラ映像は表示するが、操作を受け取らない */
     video {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #222;
+        pointer-events: none !important;
     }
-  </style>
+
+    a-scene canvas {
+        pointer-events: none !important;
+    }
+
+    /* 状態表示 */
+    #status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 2147483646;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        border-radius: 6px;
+        font-size: 13px;
+        pointer-events: none;
+    }
+
+    /* 操作パネルを最前面に固定 */
+    #controls {
+        position: fixed !important;
+        bottom: 10px !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 5px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+
+        z-index: 2147483647 !important;
+        pointer-events: auto !important;
+        isolation: isolate;
+    }
+
+    #controls button {
+        position: relative;
+        z-index: 2147483647 !important;
+
+        min-width: 52px;
+        min-height: 48px;
+        margin: 4px;
+        padding: 10px 13px;
+
+        font-size: 16px;
+        color: #111;
+        background: white;
+        border: 2px solid #555;
+        border-radius: 9px;
+
+        cursor: pointer;
+        pointer-events: auto !important;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #controls button:active {
+        background: #ccc;
+        transform: scale(0.96);
+    }
+</style>
 </head>
+
 <body>
-  <div id="status">カメラ起動前</div>
 
-  <script>
+<div id="status">カメラを準備しています...</div>
+
+<a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="alpha: true; antialias: true;"
+    arjs="sourceType: webcam; debugUIEnabled: false;">
+
+    <a-assets timeout="15000">
+        <a-asset-item id="obj" src="./tinker.obj"></a-asset-item>
+        <a-asset-item id="mtl" src="./obj.mtl"></a-asset-item>
+    </a-assets>
+
+    <a-marker id="marker" type="pattern" url="./sei.patt">
+
+        <a-entity light="type: ambient; intensity: 1.2"></a-entity>
+        <a-entity
+            light="type: directional; intensity: 1"
+            position="1 2 3">
+        </a-entity>
+
+        <a-obj-model
+            id="model"
+            src="#obj"
+            mtl="#mtl"
+            position="0 0 0"
+            rotation="90 180 0"
+            scale="0.025 0.025 0.025">
+        </a-obj-model>
+
+    </a-marker>
+
+    <a-entity camera></a-entity>
+</a-scene>
+
+<!-- 操作ボタン -->
+<div id="controls">
+    <button type="button" id="toggleRotation">回転開始</button>
+    <button type="button" id="rotateUp">↑</button>
+    <button type="button" id="rotateDown">↓</button>
+    <button type="button" id="rotateLeft">←</button>
+    <button type="button" id="rotateRight">→</button>
+    <button type="button" id="scaleUp">拡大</button>
+    <button type="button" id="scaleDown">縮小</button>
+    <button type="button" id="capture">撮影</button>
+</div>
+
+<script>
+(function () {
+    const model = document.getElementById("model");
+    const marker = document.getElementById("marker");
     const status = document.getElementById("status");
+    const scene = document.querySelector("a-scene");
 
-    async function startCamera() {
-      try {
-        status.textContent = "カメラへの接続中...";
+    let rotating = false;
+    let modelLoaded = false;
+    let markerFound = false;
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false
+    const rotationSpeed = 1;
+    const manualRotationSpeed = 5;
+    const scaleFactor = 1.1;
+    const minScale = 0.002;
+    const maxScale = 0.2;
+
+    function showStatus(message) {
+        status.textContent = message;
+    }
+
+    // ボタンを最前面に維持する
+    function fixLayers() {
+        const controls = document.getElementById("controls");
+
+        controls.style.setProperty(
+            "z-index", "2147483647", "important"
+        );
+        controls.style.setProperty(
+            "pointer-events", "auto", "important"
+        );
+
+        controls.querySelectorAll("button").forEach(function (button) {
+            button.style.setProperty(
+                "pointer-events", "auto", "important"
+            );
         });
 
-        const video = document.createElement("video");
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.srcObject = stream;
+        const video = document.querySelector("video");
+        if (video) {
+            video.style.setProperty(
+                "pointer-events", "none", "important"
+            );
+        }
 
-        document.body.appendChild(video);
-        await video.play();
-
-        status.textContent = "カメラ起動成功";
-      } catch (error) {
-        status.textContent =
-          "カメラエラー：" + error.name + " / " + error.message;
-        console.error(error);
-      }
+        if (scene.canvas) {
+            scene.canvas.style.setProperty(
+                "pointer-events", "none", "important"
+            );
+        }
     }
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      status.textContent =
-        "カメラ機能が使えません。HTTPSまたはlocalhostで開いてください。";
-    } else {
-      startCamera();
+    // マーカー認識
+    marker.addEventListener("markerFound", function () {
+        markerFound = true;
+        showStatus(
+            modelLoaded
+                ? "AR表示中"
+                : "マーカー認識中：モデルを読み込み中"
+        );
+    });
+
+    marker.addEventListener("markerLost", function () {
+        markerFound = false;
+        showStatus("マーカーをカメラに映してください");
+    });
+
+    // モデル読み込み
+    model.addEventListener("model-loaded", function () {
+        modelLoaded = true;
+        showStatus(
+            markerFound
+                ? "AR表示中"
+                : "モデル読み込み完了：マーカーを映してください"
+        );
+    });
+
+    model.addEventListener("model-error", function (event) {
+        showStatus("モデルの読み込みに失敗しました");
+        console.error("モデルエラー", event.detail);
+    });
+
+    scene.addEventListener("loaded", function () {
+        fixLayers();
+        showStatus("準備完了：マーカーを映してください");
+    });
+
+    // 自動回転
+    document.getElementById("toggleRotation")
+        .addEventListener("click", function () {
+            rotating = !rotating;
+            this.textContent = rotating ? "回転停止" : "回転開始";
+        });
+
+    function animate() {
+        if (rotating && model.object3D) {
+            model.object3D.rotation.z +=
+                THREE.MathUtils.degToRad(rotationSpeed);
+        }
+
+        requestAnimationFrame(animate);
     }
-  </script>
+    animate();
+
+    // 手動回転
+    function rotateModel(axis, amount) {
+        const r = model.getAttribute("rotation");
+        r[axis] += amount;
+        model.setAttribute("rotation", r);
+    }
+
+    document.getElementById("rotateUp")
+        .addEventListener("click", function () {
+            rotateModel("x", -manualRotationSpeed);
+        });
+
+    document.getElementById("rotateDown")
+        .addEventListener("click", function () {
+            rotateModel("x", manualRotationSpeed);
+        });
+
+    document.getElementById("rotateLeft")
+        .addEventListener("click", function () {
+            rotateModel("y", -manualRotationSpeed);
+        });
+
+    document.getElementById("rotateRight")
+        .addEventListener("click", function () {
+            rotateModel("y", manualRotationSpeed);
+        });
+
+    // 拡大
+    document.getElementById("scaleUp")
+        .addEventListener("click", function () {
+            const s = model.getAttribute("scale");
+
+            s.x = Math.min(maxScale, s.x * scaleFactor);
+            s.y = Math.min(maxScale, s.y * scaleFactor);
+            s.z = Math.min(maxScale, s.z * scaleFactor);
+
+            model.setAttribute("scale", s);
+        });
+
+    // 縮小
+    document.getElementById("scaleDown")
+        .addEventListener("click", function () {
+            const s = model.getAttribute("scale");
+
+            s.x = Math.max(minScale, s.x / scaleFactor);
+            s.y = Math.max(minScale, s.y / scaleFactor);
+            s.z = Math.max(minScale, s.z / scaleFactor);
+
+            model.setAttribute("scale", s);
+        });
+
+    // 撮影
+    document.getElementById("capture")
+        .addEventListener("click", function () {
+            const renderer = scene.renderer;
+            const video = document.querySelector("video");
+
+            if (!renderer || !video || video.readyState < 2) {
+                alert("カメラ映像の準備ができていません");
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const gl = renderer.domElement;
+            ctx.drawImage(
+                gl,
+                0, 0, gl.width, gl.height,
+                0, 0, canvas.width, canvas.height
+            );
+
+            canvas.toBlob(function (blob) {
+                if (!blob) {
+                    alert("撮影に失敗しました");
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+
+                link.href = url;
+                link.download = "screenshot.png";
+                link.click();
+
+                setTimeout(function () {
+                    URL.revokeObjectURL(url);
+                }, 1000);
+            }, "image/png");
+        });
+
+    // 初期化後にも重なり順を補正
+    fixLayers();
+    setTimeout(fixLayers, 1000);
+    setTimeout(fixLayers, 3000);
+})();
+</script>
+
 </body>
 </html>
 ```
