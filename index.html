@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>静清ARサンプル（完成版）</title>
+    <title>静清ARサンプル（修正版）</title>
 
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -16,6 +16,20 @@
             font-family: sans-serif;
         }
 
+        #status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 100;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 14px;
+            border-radius: 6px;
+            pointer-events: none;
+        }
+
         #controls {
             position: fixed;
             bottom: 10px;
@@ -24,13 +38,10 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            align-items: center;
-            z-index: 10;
-            pointer-events: none;
+            z-index: 100;
         }
 
         #controls button {
-            pointer-events: auto;
             margin: 4px;
             padding: 10px 14px;
             font-size: 16px;
@@ -39,103 +50,68 @@
             background: white;
             color: black;
         }
-
-        #controls button:active {
-            background: #ddd;
-        }
-
-        #status {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.65);
-            color: white;
-            border-radius: 6px;
-            font-size: 14px;
-        }
     </style>
 </head>
 
 <body>
 
-    <div id="status">カメラを起動しています...</div>
+<div id="status">初期化中...</div>
 
-    <a-scene
-        embedded
-        vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true; alpha: true;"
-        arjs="sourceType: webcam; debugUIEnabled: false;">
+<a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="alpha: true; antialias: true;"
+    arjs="sourceType: webcam; debugUIEnabled: false;">
 
-        <a-assets>
-            <a-asset-item id="obj" src="./tinker.obj"></a-asset-item>
-            <a-asset-item id="mtl" src="./obj.mtl"></a-asset-item>
-        </a-assets>
+    <a-assets timeout="15000">
+        <a-asset-item id="obj" src="./tinker.obj"></a-asset-item>
+        <a-asset-item id="mtl" src="./obj.mtl"></a-asset-item>
+    </a-assets>
 
-        <!-- マーカー認識 -->
-        <a-marker
-            id="marker"
-            type="pattern"
-            url="./sei.patt"
-            smooth="true"
-            smoothCount="5"
-            smoothTolerance="0.01"
-            smoothThreshold="2">
+    <a-marker
+        id="marker"
+        type="pattern"
+        url="./sei.patt">
 
-            <!-- 3Dモデル -->
-            <a-obj-model
-                id="model"
-                src="#obj"
-                mtl="#mtl"
-                position="0 0 0"
-                rotation="90 180 0"
-                scale="0.1 0.1 0.1">
-            </a-obj-model>
+        <a-entity
+            light="type: ambient; intensity: 1.2">
+        </a-entity>
 
-        </a-marker>
+        <a-entity
+            light="type: directional; intensity: 1"
+            position="1 2 3">
+        </a-entity>
 
-        <a-entity camera></a-entity>
+        <a-obj-model
+            id="model"
+            src="#obj"
+            mtl="#mtl"
+            position="0 0 0"
+            rotation="90 180 0"
+            scale="0.1 0.1 0.1">
+        </a-obj-model>
 
-    </a-scene>
+    </a-marker>
 
-    <!-- 操作ボタン -->
-    <div id="controls">
-        <button id="toggleRotation">回転開始</button>
-        <button id="rotateUp">↑</button>
-        <button id="rotateDown">↓</button>
-        <button id="rotateLeft">←</button>
-        <button id="rotateRight">→</button>
-        <button id="scaleUp">拡大</button>
-        <button id="scaleDown">縮小</button>
-        <button id="capture">撮影</button>
-    </div>
+    <a-entity camera></a-entity>
 
-    <script>
-        const model = document.getElementById("model");
-        const marker = document.getElementById("marker");
-        const status = document.getElementById("status");
+</a-scene>
 
-        let rotating = false;
-        let markerVisible = false;
+<div id="controls">
+    <button id="toggleRotation">回転開始</button>
+    <button id="rotateUp">↑</button>
+    <button id="rotateDown">↓</button>
+    <button id="rotateLeft">←</button>
+    <button id="rotateRight">→</button>
+    <button id="scaleUp">拡大</button>
+    <button id="scaleDown">縮小</button>
+    <button id="capture">撮影</button>
+</div>
 
-        const rotationSpeed = 1;
-        const manualRotationSpeed = 5;
-        const scaleFactor = 1.1;
-        const minScale = 0.01;
-        const maxScale = 2;
+<script>
+    const status = document.getElementById("status");
+    const marker = document.getElementById("marker");
+    const model = document.getElementById("model");
 
-        // マーカー認識状態
-        marker.addEventListener("markerFound", () => {
-            markerVisible = true;
-            status.textContent = "マーカーを認識しました";
-        });
-
-        marker.addEventListener("markerLost", () => {
-            markerVisible = false;
-            status.textContent = "マーカーをカメラに映してください";
-        });
-
-        // 自動回転の開始・停止
-        document.getElementById("toggleRotation").addEventListener("click", () => {
+    let rotating =
 
