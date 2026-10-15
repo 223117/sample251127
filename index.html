@@ -1,17 +1,19 @@
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="utf-8">
-    <title>静清ARサンプル（画像認識）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>静清ARサンプル（完成版）</title>
 
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <style>
         body {
             margin: 0;
             overflow: hidden;
+            font-family: sans-serif;
         }
 
         #controls {
@@ -22,48 +24,84 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
+            align-items: center;
             z-index: 10;
+            pointer-events: none;
         }
 
         #controls button {
-            margin: 5px;
-            padding: 8px 15px;
+            pointer-events: auto;
+            margin: 4px;
+            padding: 10px 14px;
             font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            color: black;
+        }
+
+        #controls button:active {
+            background: #ddd;
+        }
+
+        #status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.65);
+            color: white;
+            border-radius: 6px;
+            font-size: 14px;
         }
     </style>
 </head>
 
 <body>
 
+    <div id="status">カメラを起動しています...</div>
+
     <a-scene
         embedded
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true;"
-        arjs="trackingMethod: best; sourceType: webcam;">
+        renderer="logarithmicDepthBuffer: true; alpha: true;"
+        arjs="sourceType: webcam; debugUIEnabled: false;">
 
-        <a-nft
-            type="nft"
-            url="sei"
+        <a-assets>
+            <a-asset-item id="obj" src="./tinker.obj"></a-asset-item>
+            <a-asset-item id="mtl" src="./obj.mtl"></a-asset-item>
+        </a-assets>
+
+        <!-- マーカー認識 -->
+        <a-marker
+            id="marker"
+            type="pattern"
+            url="./sei.patt"
             smooth="true"
-            smoothCount="10"
-            smoothTolerance=".01"
-            smoothThreshold="5">
+            smoothCount="5"
+            smoothTolerance="0.01"
+            smoothThreshold="2">
 
-            <a-entity
+            <!-- 3Dモデル -->
+            <a-obj-model
                 id="model"
-                obj-model="obj: url(tinker.obj); mtl: url(obj.mtl)"
-                scale="100 100 100"
+                src="#obj"
+                mtl="#mtl"
+                position="0 0 0"
                 rotation="90 180 0"
-                position="0 0 0">
-            </a-entity>
+                scale="0.1 0.1 0.1">
+            </a-obj-model>
 
-        </a-nft>
+        </a-marker>
 
         <a-entity camera></a-entity>
+
     </a-scene>
 
+    <!-- 操作ボタン -->
     <div id="controls">
-        <button id="toggleRotation">回転</button>
+        <button id="toggleRotation">回転開始</button>
         <button id="rotateUp">↑</button>
         <button id="rotateDown">↓</button>
         <button id="rotateLeft">←</button>
@@ -75,89 +113,29 @@
 
     <script>
         const model = document.getElementById("model");
+        const marker = document.getElementById("marker");
+        const status = document.getElementById("status");
 
         let rotating = false;
+        let markerVisible = false;
+
         const rotationSpeed = 1;
         const manualRotationSpeed = 5;
+        const scaleFactor = 1.1;
+        const minScale = 0.01;
+        const maxScale = 2;
 
+        // マーカー認識状態
+        marker.addEventListener("markerFound", () => {
+            markerVisible = true;
+            status.textContent = "マーカーを認識しました";
+        });
+
+        marker.addEventListener("markerLost", () => {
+            markerVisible = false;
+            status.textContent = "マーカーをカメラに映してください";
+        });
+
+        // 自動回転の開始・停止
         document.getElementById("toggleRotation").addEventListener("click", () => {
-            rotating = !rotating;
-        });
 
-        function rotateModel() {
-            if (rotating && model.object3D) {
-                model.object3D.rotation.z += THREE.MathUtils.degToRad(rotationSpeed);
-            }
-            requestAnimationFrame(rotateModel);
-        }
-
-        document.getElementById("rotateUp").addEventListener("click", () => {
-            const r = model.getAttribute("rotation");
-            model.setAttribute("rotation", {
-                x: r.x - manualRotationSpeed,
-                y: r.y,
-                z: r.z
-            });
-        });
-
-        document.getElementById("rotateDown").addEventListener("click", () => {
-            const r = model.getAttribute("rotation");
-            model.setAttribute("rotation", {
-                x: r.x + manualRotationSpeed,
-                y: r.y,
-                z: r.z
-            });
-        });
-
-        document.getElementById("rotateLeft").addEventListener("click", () => {
-            const r = model.getAttribute("rotation");
-            model.setAttribute("rotation", {
-                x: r.x,
-                y: r.y - manualRotationSpeed,
-                z: r.z
-            });
-        });
-
-        document.getElementById("rotateRight").addEventListener("click", () => {
-            const r = model.getAttribute("rotation");
-            model.setAttribute("rotation", {
-                x: r.x,
-                y: r.y + manualRotationSpeed,
-                z: r.z
-            });
-        });
-
-        document.getElementById("scaleUp").addEventListener("click", () => {
-            const s = model.getAttribute("scale");
-            model.setAttribute("scale", {
-                x: s.x * 1.1,
-                y: s.y * 1.1,
-                z: s.z * 1.1
-            });
-        });
-
-        document.getElementById("scaleDown").addEventListener("click", () => {
-            const s = model.getAttribute("scale");
-            model.setAttribute("scale", {
-                x: s.x / 1.1,
-                y: s.y / 1.1,
-                z: s.z / 1.1
-            });
-        });
-
-        document.getElementById("capture").addEventListener("click", () => {
-            const scene = document.querySelector("a-scene");
-            const renderer = scene.renderer;
-            const video = document.querySelector("video");
-
-            if (!renderer || !video) {
-                alert("カメラ映像の準備ができていません。");
-                return;
-            }
-
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(video, 0, 
