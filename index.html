@@ -1,52 +1,86 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, user-scalable=no">
+          content="width=device-width, initial-scale=1.0">
 
-    <title>静清ARサンプル（モデル切り替え版）</title>
+    <title>静清ARサンプル（モデル切り替え・拡大縮小版）</title>
 
+    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+
+    <!-- AR.js -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <style>
+
         body {
             margin: 0;
             overflow: hidden;
             font-family: sans-serif;
         }
 
+        /* AR画面 */
+        a-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 操作パネル */
         #controls {
             position: fixed;
-            bottom: 15px;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
+
             width: 95%;
-            z-index: 9999;
+            max-width: 600px;
+            max-height: 48vh;
+
+            overflow-y: auto;
+            box-sizing: border-box;
+
+            z-index: 99999;
 
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 8px;
 
+            padding: 10px;
+
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 12px;
+
             pointer-events: auto;
         }
 
+        /* ボタンの行 */
         .button-row {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
             gap: 6px;
+            width: 100%;
         }
 
+        /* ボタン */
         button {
-            padding: 10px 13px;
+            padding: 10px 12px;
             font-size: 14px;
+
             border: none;
             border-radius: 7px;
+
             background: white;
             color: black;
+
             cursor: pointer;
             touch-action: manipulation;
         }
@@ -55,31 +89,56 @@
             background: #cccccc;
         }
 
+        /* 選択中のモデル */
         button.selected {
             background: #2196f3;
             color: white;
         }
 
-        #status, #rotationDisplay {
+        /* 情報表示 */
+        .info {
             background: rgba(0, 0, 0, 0.7);
             color: white;
+
             padding: 7px 12px;
             border-radius: 7px;
+
             font-size: 13px;
             text-align: center;
         }
+
+        /* スマホ用 */
+        @media screen and (max-width: 600px) {
+
+            #controls {
+                max-height: 45vh;
+                padding: 8px;
+            }
+
+            button {
+                padding: 9px 10px;
+                font-size: 13px;
+            }
+
+        }
+
     </style>
+
 </head>
 
 <body>
 
-    <!-- AR表示 -->
+    <!-- ========================= -->
+    <!-- AR表示エリア -->
+    <!-- ========================= -->
+
     <a-scene
         embedded
         arjs="sourceType: webcam; debugUIEnabled: false;"
         vr-mode-ui="enabled: false"
         renderer="logarithmicDepthBuffer: true;">
 
+        <!-- 3Dモデルの読み込み -->
         <a-assets timeout="30000">
 
             <!-- モデル① -->
@@ -112,8 +171,12 @@
             type="pattern"
             url="sei.patt">
 
-            <!-- 回転グループ -->
-            <a-entity id="rotationGroup">
+            <!-- 回転・拡大縮小グループ -->
+            <a-entity
+                id="rotationGroup"
+                position="0 0 0"
+                rotation="0 0 0"
+                scale="1 1 1">
 
                 <!-- モデル① -->
                 <a-entity
@@ -139,71 +202,115 @@
 
         </a-marker>
 
+        <!-- カメラ -->
         <a-entity camera></a-entity>
 
     </a-scene>
 
+
+    <!-- ========================= -->
     <!-- 操作ボタン -->
+    <!-- ========================= -->
+
     <div id="controls">
 
-        <div id="status">
+        <!-- 現在のモデル -->
+        <div id="status" class="info">
             表示中：モデル①
         </div>
 
         <!-- モデル切り替え -->
         <div class="button-row">
-            <button id="btn1" class="selected"
-                    onclick="changeModel(1)">
+
+            <button
+                id="btn1"
+                class="selected"
+                onclick="changeModel(1)">
                 モデル①
             </button>
 
-            <button id="btn2"
-                    onclick="changeModel(2)">
+            <button
+                id="btn2"
+                onclick="changeModel(2)">
                 モデル②
             </button>
+
         </div>
 
-        <!-- 回転角度 -->
-        <div id="rotationDisplay">
+
+        <!-- ========================= -->
+        <!-- 拡大・縮小 -->
+        <!-- ========================= -->
+
+        <div class="button-row">
+
+            <button onclick="changeScale(1.2)">
+                ＋ 拡大
+            </button>
+
+            <button onclick="changeScale(1 / 1.2)">
+                － 縮小
+            </button>
+
+            <button onclick="resetScale()">
+                サイズリセット
+            </button>
+
+        </div>
+
+        <!-- 倍率表示 -->
+        <div id="scaleDisplay" class="info">
+            表示倍率：100%
+        </div>
+
+
+        <!-- ========================= -->
+        <!-- 回転操作 -->
+        <!-- ========================= -->
+
+        <div id="rotationDisplay" class="info">
             X: 0°　Y: 0°　Z: 0°
         </div>
 
-        <!-- 回転操作 -->
         <div class="button-row">
-            <button onclick="rotateModel('x', -15)">X−</button>
-            <button onclick="rotateModel('x', 15)">X＋</button>
 
-            <button onclick="rotateModel('y', -15)">Y−</button>
-            <button onclick="rotateModel('y', 15)">Y＋</button>
+            <button onclick="rotateModel('x', -15)">
+                X−
+            </button>
 
-            <button onclick="rotateModel('z', -15)">Z−</button>
-            <button onclick="rotateModel('z', 15)">Z＋</button>
+            <button onclick="rotateModel('x', 15)">
+                X＋
+            </button>
+
+            <button onclick="rotateModel('y', -15)">
+                Y−
+            </button>
+
+            <button onclick="rotateModel('y', 15)">
+                Y＋
+            </button>
+
+            <button onclick="rotateModel('z', -15)">
+                Z−
+            </button>
+
+            <button onclick="rotateModel('z', 15)">
+                Z＋
+            </button>
+
         </div>
 
+
+        <!-- 回転リセット・自動回転 -->
         <div class="button-row">
 
             <button onclick="resetRotation()">
                 回転リセット
             </button>
 
-            <button id="autoButton"
-                    onclick="toggleAutoRotation()">
-               <!-- 拡大・縮小ボタン -->
-<div class="button-row">
-    <button onclick="changeScale(1.2)">＋ 拡大</button>
-    <button onclick="changeScale(1 / 1.2)">－ 縮小</button>
-    <button onclick="resetScale()">サイズリセット</button>
-</div>
-
-<!-- 現在の倍率 -->
-<div id="scaleDisplay"
-     style="background:rgba(0,0,0,0.7);
-            color:white;
-            padding:7px 12px;
-            border-radius:7px;
-            font-size:13px;">
-    表示倍率：100%
-</div>
+            <button
+                id="autoButton"
+                onclick="toggleAutoRotation()">
                 自動回転 OFF
             </button>
 
@@ -211,9 +318,14 @@
 
     </div>
 
+
+    <!-- ========================= -->
+    <!-- JavaScript -->
+    <!-- ========================= -->
+
     <script>
 
-        // 現在表示しているモデル
+        // 現在のモデル
         let currentModel = 1;
 
         // 回転角度
@@ -226,7 +338,17 @@
         // 自動回転
         let autoRotation = false;
 
+        // 初期倍率
+        const initialScale = 1.0;
+
+        // 現在の倍率
+        let currentScale = initialScale;
+
+
+        // =========================
         // モデル切り替え
+        // =========================
+
         function changeModel(number) {
 
             const model1 = document.getElementById("model1");
@@ -238,29 +360,40 @@
             currentModel = number;
 
             document.getElementById("status").textContent =
-                "表示中：モデル" + (number === 1 ? "①" : "②");
+                "表示中：モデル" +
+                (number === 1 ? "①" : "②");
 
             document.getElementById("btn1").classList.toggle(
-                "selected", number === 1
+                "selected",
+                number === 1
             );
 
             document.getElementById("btn2").classList.toggle(
-                "selected", number === 2
+                "selected",
+                number === 2
             );
+
         }
 
-        // 回転操作
+
+        // =========================
+        // 回転
+        // =========================
+
         function rotateModel(axis, angle) {
 
             rotation[axis] += angle;
 
             updateRotation();
+
         }
 
-        // 回転反映
+
+        // 回転を反映
         function updateRotation() {
 
-            const group = document.getElementById("rotationGroup");
+            const group =
+                document.getElementById("rotationGroup");
 
             group.setAttribute(
                 "rotation",
@@ -273,7 +406,9 @@
                 "X: " + Math.round(rotation.x) + "°　" +
                 "Y: " + Math.round(rotation.y) + "°　" +
                 "Z: " + Math.round(rotation.z) + "°";
+
         }
+
 
         // 回転リセット
         function resetRotation() {
@@ -283,9 +418,64 @@
             rotation.z = 0;
 
             updateRotation();
+
         }
 
-        // 自動回転ON・OFF
+
+        // =========================
+        // 拡大・縮小
+        // =========================
+
+        function changeScale(factor) {
+
+            currentScale *= factor;
+
+            // 最小0.2倍、最大5倍
+            currentScale = Math.max(
+                0.2,
+                Math.min(5, currentScale)
+            );
+
+            updateScale();
+
+        }
+
+
+        // 倍率を反映
+        function updateScale() {
+
+            const group =
+                document.getElementById("rotationGroup");
+
+            group.setAttribute(
+                "scale",
+                currentScale + " " +
+                currentScale + " " +
+                currentScale
+            );
+
+            document.getElementById("scaleDisplay").textContent =
+                "表示倍率：" +
+                Math.round(currentScale * 100) +
+                "%";
+
+        }
+
+
+        // サイズリセット
+        function resetScale() {
+
+            currentScale = initialScale;
+
+            updateScale();
+
+        }
+
+
+        // =========================
+        // 自動回転
+        // =========================
+
         function toggleAutoRotation() {
 
             autoRotation = !autoRotation;
@@ -294,9 +484,14 @@
                 autoRotation
                     ? "自動回転 ON"
                     : "自動回転 OFF";
+
         }
 
-        // 自動回転処理
+
+        // =========================
+        // アニメーション処理
+        // =========================
+
         let previousTime = null;
 
         function animate(time) {
@@ -305,7 +500,11 @@
                 previousTime = time;
             }
 
-            const delta = Math.min((time - previousTime) / 1000, 0.1);
+            const delta = Math.min(
+                (time - previousTime) / 1000,
+                0.1
+            );
+
             previousTime = time;
 
             if (autoRotation) {
@@ -313,9 +512,11 @@
                 rotation.y += 30 * delta;
 
                 updateRotation();
+
             }
 
             requestAnimationFrame(animate);
+
         }
 
         requestAnimationFrame(animate);
