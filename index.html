@@ -1,360 +1,310 @@
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>静清ARサンプル</title>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <title>静清ARサンプル（モデル切り替え版）</title>
 
-<style>
-    html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        font-family: sans-serif;
-    }
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-    /* AR画面 */
-    a-scene {
-        position: fixed !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        z-index: 1 !important;
-    }
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
 
-    /* カメラ映像は表示するが、操作を受け取らない */
-    video {
-        pointer-events: none !important;
-    }
+        #controls {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            z-index: 9999;
 
-    a-scene canvas {
-        pointer-events: none !important;
-    }
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
 
-    /* 状態表示 */
-    #status {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        z-index: 2147483646;
-        padding: 8px 12px;
-        background: rgba(0, 0, 0, 0.75);
-        color: white;
-        border-radius: 6px;
-        font-size: 13px;
-        pointer-events: none;
-    }
+            pointer-events: auto;
+        }
 
-    /* 操作パネルを最前面に固定 */
-    #controls {
-        position: fixed !important;
-        bottom: 10px !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100%;
-        box-sizing: border-box;
-        padding: 5px;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
+        .button-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
 
-        z-index: 2147483647 !important;
-        pointer-events: auto !important;
-        isolation: isolate;
-    }
+        button {
+            padding: 10px 13px;
+            font-size: 14px;
+            border: none;
+            border-radius: 7px;
+            background: white;
+            color: black;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
 
-    #controls button {
-        position: relative;
-        z-index: 2147483647 !important;
+        button:active {
+            background: #cccccc;
+        }
 
-        min-width: 52px;
-        min-height: 48px;
-        margin: 4px;
-        padding: 10px 13px;
+        button.selected {
+            background: #2196f3;
+            color: white;
+        }
 
-        font-size: 16px;
-        color: #111;
-        background: white;
-        border: 2px solid #555;
-        border-radius: 9px;
-
-        cursor: pointer;
-        pointer-events: auto !important;
-        touch-action: manipulation;
-        user-select: none;
-        -webkit-user-select: none;
-    }
-
-    #controls button:active {
-        background: #ccc;
-        transform: scale(0.96);
-    }
-</style>
+        #status, #rotationDisplay {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 7px 12px;
+            border-radius: 7px;
+            font-size: 13px;
+            text-align: center;
+        }
+    </style>
 </head>
 
 <body>
 
-<div id="status">カメラを準備しています...</div>
+    <!-- AR表示 -->
+    <a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true;">
 
-<a-scene
-    embedded
-    vr-mode-ui="enabled: false"
-    renderer="alpha: true; antialias: true;"
-    arjs="sourceType: webcam; debugUIEnabled: false;">
+        <a-assets timeout="30000">
 
-    <a-assets timeout="15000">
-        <a-asset-item id="obj" src="./tinker.obj"></a-asset-item>
-        <a-asset-item id="mtl" src="./obj.mtl"></a-asset-item>
-    </a-assets>
+            <!-- モデル① -->
+            <a-asset-item
+                id="obj1"
+                src="tinker.obj">
+            </a-asset-item>
 
-    <a-marker id="marker" type="pattern" url="./sei.patt">
+            <a-asset-item
+                id="mtl1"
+                src="obj.mtl">
+            </a-asset-item>
 
-        <a-entity light="type: ambient; intensity: 1.2"></a-entity>
-        <a-entity
-            light="type: directional; intensity: 1"
-            position="1 2 3">
-        </a-entity>
+            <!-- モデル② -->
+            <a-asset-item
+                id="obj2"
+                src="tinker2.obj">
+            </a-asset-item>
 
-        <a-obj-model
-            id="model"
-            src="#obj"
-            mtl="#mtl"
-            position="0 0 0"
-            rotation="-40 180 0"
-            scale="0.025 0.025 0.025">
-        </a-obj-model>
+            <a-asset-item
+                id="mtl2"
+                src="obj2.mtl">
+            </a-asset-item>
 
-    </a-marker>
+        </a-assets>
 
-    <a-entity camera></a-entity>
-</a-scene>
+        <!-- マーカーは1つ -->
+        <a-marker
+            id="marker"
+            type="pattern"
+            url="sei.patt">
 
-<!-- 操作ボタン -->
-<div id="controls">
-    <button type="button" id="toggleRotation">回転開始</button>
-    <button type="button" id="rotateUp">↑</button>
-    <button type="button" id="rotateDown">↓</button>
-    <button type="button" id="rotateLeft">←</button>
-    <button type="button" id="rotateRight">→</button>
-    <button type="button" id="scaleUp">拡大</button>
-    <button type="button" id="scaleDown">縮小</button>
-    <button type="button" id="capture">撮影</button>
-</div>
+            <!-- 回転グループ -->
+            <a-entity id="rotationGroup">
 
-<script>
-(function () {
-    const model = document.getElementById("model");
-    const marker = document.getElementById("marker");
-    const status = document.getElementById("status");
-    const scene = document.querySelector("a-scene");
+                <!-- モデル① -->
+                <a-entity
+                    id="model1"
+                    obj-model="obj: #obj1; mtl: #mtl1"
+                    position="0 0 0"
+                    rotation="0 0 0"
+                    scale="0.1 0.1 0.1"
+                    visible="true">
+                </a-entity>
 
-    let rotating = false;
-    let modelLoaded = false;
-    let markerFound = false;
+                <!-- モデル② -->
+                <a-entity
+                    id="model2"
+                    obj-model="obj: #obj2; mtl: #mtl2"
+                    position="0 0 0"
+                    rotation="0 0 0"
+                    scale="0.1 0.1 0.1"
+                    visible="false">
+                </a-entity>
 
-    const rotationSpeed = 1;
-    const manualRotationSpeed = 5;
-    const scaleFactor = 1.1;
-    const minScale = 0.002;
-    const maxScale = 0.2;
+            </a-entity>
 
-    function showStatus(message) {
-        status.textContent = message;
-    }
+        </a-marker>
 
-    // ボタンを最前面に維持する
-    function fixLayers() {
-        const controls = document.getElementById("controls");
+        <a-entity camera></a-entity>
 
-        controls.style.setProperty(
-            "z-index", "2147483647", "important"
-        );
-        controls.style.setProperty(
-            "pointer-events", "auto", "important"
-        );
+    </a-scene>
 
-        controls.querySelectorAll("button").forEach(function (button) {
-            button.style.setProperty(
-                "pointer-events", "auto", "important"
+    <!-- 操作ボタン -->
+    <div id="controls">
+
+        <div id="status">
+            表示中：モデル①
+        </div>
+
+        <!-- モデル切り替え -->
+        <div class="button-row">
+            <button id="btn1" class="selected"
+                    onclick="changeModel(1)">
+                モデル①
+            </button>
+
+            <button id="btn2"
+                    onclick="changeModel(2)">
+                モデル②
+            </button>
+        </div>
+
+        <!-- 回転角度 -->
+        <div id="rotationDisplay">
+            X: 0°　Y: 0°　Z: 0°
+        </div>
+
+        <!-- 回転操作 -->
+        <div class="button-row">
+            <button onclick="rotateModel('x', -15)">X−</button>
+            <button onclick="rotateModel('x', 15)">X＋</button>
+
+            <button onclick="rotateModel('y', -15)">Y−</button>
+            <button onclick="rotateModel('y', 15)">Y＋</button>
+
+            <button onclick="rotateModel('z', -15)">Z−</button>
+            <button onclick="rotateModel('z', 15)">Z＋</button>
+        </div>
+
+        <div class="button-row">
+
+            <button onclick="resetRotation()">
+                回転リセット
+            </button>
+
+            <button id="autoButton"
+                    onclick="toggleAutoRotation()">
+                自動回転 OFF
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        // 現在表示しているモデル
+        let currentModel = 1;
+
+        // 回転角度
+        let rotation = {
+            x: 0,
+            y: 0,
+            z: 0
+        };
+
+        // 自動回転
+        let autoRotation = false;
+
+        // モデル切り替え
+        function changeModel(number) {
+
+            const model1 = document.getElementById("model1");
+            const model2 = document.getElementById("model2");
+
+            model1.setAttribute("visible", number === 1);
+            model2.setAttribute("visible", number === 2);
+
+            currentModel = number;
+
+            document.getElementById("status").textContent =
+                "表示中：モデル" + (number === 1 ? "①" : "②");
+
+            document.getElementById("btn1").classList.toggle(
+                "selected", number === 1
             );
-        });
 
-        const video = document.querySelector("video");
-        if (video) {
-            video.style.setProperty(
-                "pointer-events", "none", "important"
+            document.getElementById("btn2").classList.toggle(
+                "selected", number === 2
             );
         }
 
-        if (scene.canvas) {
-            scene.canvas.style.setProperty(
-                "pointer-events", "none", "important"
-            );
+        // 回転操作
+        function rotateModel(axis, angle) {
+
+            rotation[axis] += angle;
+
+            updateRotation();
         }
-    }
 
-    // マーカー認識
-    marker.addEventListener("markerFound", function () {
-        markerFound = true;
-        showStatus(
-            modelLoaded
-                ? "AR表示中"
-                : "マーカー認識中：モデルを読み込み中"
-        );
-    });
+        // 回転反映
+        function updateRotation() {
 
-    marker.addEventListener("markerLost", function () {
-        markerFound = false;
-        showStatus("マーカーをカメラに映してください");
-    });
+            const group = document.getElementById("rotationGroup");
 
-    // モデル読み込み
-    model.addEventListener("model-loaded", function () {
-        modelLoaded = true;
-        showStatus(
-            markerFound
-                ? "AR表示中"
-                : "モデル読み込み完了：マーカーを映してください"
-        );
-    });
+            group.setAttribute(
+                "rotation",
+                rotation.x + " " +
+                rotation.y + " " +
+                rotation.z
+            );
 
-    model.addEventListener("model-error", function (event) {
-        showStatus("モデルの読み込みに失敗しました");
-        console.error("モデルエラー", event.detail);
-    });
+            document.getElementById("rotationDisplay").textContent =
+                "X: " + Math.round(rotation.x) + "°　" +
+                "Y: " + Math.round(rotation.y) + "°　" +
+                "Z: " + Math.round(rotation.z) + "°";
+        }
 
-    scene.addEventListener("loaded", function () {
-        fixLayers();
-        showStatus("準備完了：マーカーを映してください");
-    });
+        // 回転リセット
+        function resetRotation() {
 
-    // 自動回転
-    document.getElementById("toggleRotation")
-        .addEventListener("click", function () {
-            rotating = !rotating;
-            this.textContent = rotating ? "回転停止" : "回転開始";
-        });
+            rotation.x = 0;
+            rotation.y = 0;
+            rotation.z = 0;
 
-    function animate() {
-        if (rotating && model.object3D) {
-            model.object3D.rotation.z +=
-                THREE.MathUtils.degToRad(rotationSpeed);
+            updateRotation();
+        }
+
+        // 自動回転ON・OFF
+        function toggleAutoRotation() {
+
+            autoRotation = !autoRotation;
+
+            document.getElementById("autoButton").textContent =
+                autoRotation
+                    ? "自動回転 ON"
+                    : "自動回転 OFF";
+        }
+
+        // 自動回転処理
+        let previousTime = null;
+
+        function animate(time) {
+
+            if (previousTime === null) {
+                previousTime = time;
+            }
+
+            const delta = Math.min((time - previousTime) / 1000, 0.1);
+            previousTime = time;
+
+            if (autoRotation) {
+
+                rotation.y += 30 * delta;
+
+                updateRotation();
+            }
+
+            requestAnimationFrame(animate);
         }
 
         requestAnimationFrame(animate);
-    }
-    animate();
 
-    // 手動回転
-    function rotateModel(axis, amount) {
-        const r = model.getAttribute("rotation");
-        r[axis] += amount;
-        model.setAttribute("rotation", r);
-    }
-
-    document.getElementById("rotateUp")
-        .addEventListener("click", function () {
-            rotateModel("x", -manualRotationSpeed);
-        });
-
-    document.getElementById("rotateDown")
-        .addEventListener("click", function () {
-            rotateModel("x", manualRotationSpeed);
-        });
-
-    document.getElementById("rotateLeft")
-        .addEventListener("click", function () {
-            rotateModel("y", -manualRotationSpeed);
-        });
-
-    document.getElementById("rotateRight")
-        .addEventListener("click", function () {
-            rotateModel("y", manualRotationSpeed);
-        });
-
-    // 拡大
-    document.getElementById("scaleUp")
-        .addEventListener("click", function () {
-            const s = model.getAttribute("scale");
-
-            s.x = Math.min(maxScale, s.x * scaleFactor);
-            s.y = Math.min(maxScale, s.y * scaleFactor);
-            s.z = Math.min(maxScale, s.z * scaleFactor);
-
-            model.setAttribute("scale", s);
-        });
-
-    // 縮小
-    document.getElementById("scaleDown")
-        .addEventListener("click", function () {
-            const s = model.getAttribute("scale");
-
-            s.x = Math.max(minScale, s.x / scaleFactor);
-            s.y = Math.max(minScale, s.y / scaleFactor);
-            s.z = Math.max(minScale, s.z / scaleFactor);
-
-            model.setAttribute("scale", s);
-        });
-
-    // 撮影
-    document.getElementById("capture")
-        .addEventListener("click", function () {
-            const renderer = scene.renderer;
-            const video = document.querySelector("video");
-
-            if (!renderer || !video || video.readyState < 2) {
-                alert("カメラ映像の準備ができていません");
-                return;
-            }
-
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const gl = renderer.domElement;
-            ctx.drawImage(
-                gl,
-                0, 0, gl.width, gl.height,
-                0, 0, canvas.width, canvas.height
-            );
-
-            canvas.toBlob(function (blob) {
-                if (!blob) {
-                    alert("撮影に失敗しました");
-                    return;
-                }
-
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-
-                link.href = url;
-                link.download = "screenshot.png";
-                link.click();
-
-                setTimeout(function () {
-                    URL.revokeObjectURL(url);
-                }, 1000);
-            }, "image/png");
-        });
-
-    // 初期化後にも重なり順を補正
-    fixLayers();
-    setTimeout(fixLayers, 1000);
-    setTimeout(fixLayers, 3000);
-})();
-</script>
+    </script>
 
 </body>
 </html>
-```
