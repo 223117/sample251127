@@ -188,6 +188,22 @@
 
             <button id="autoButton"
                     onclick="toggleAutoRotation()">
+               <!-- 拡大・縮小ボタン -->
+<div class="button-row">
+    <button onclick="changeScale(1.2)">＋ 拡大</button>
+    <button onclick="changeScale(1 / 1.2)">－ 縮小</button>
+    <button onclick="resetScale()">サイズリセット</button>
+</div>
+
+<!-- 現在の倍率 -->
+<div id="scaleDisplay"
+     style="background:rgba(0,0,0,0.7);
+            color:white;
+            padding:7px 12px;
+            border-radius:7px;
+            font-size:13px;">
+    表示倍率：100%
+</div>
                 自動回転 OFF
             </button>
 
